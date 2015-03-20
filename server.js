@@ -1,57 +1,70 @@
+var ipaddress = process.env.OPENSHIFT_NODEJS_IP || "0.0.0.0" || "127.0.0.1";
+var port      = process.env.OPENSHIFT_NODEJS_PORT || 8080;
 var WebSocketServer = require('ws').Server;
-var http = require('http');
+var express = require('express');
+var app = express();
+var server = app.listen(port,ipaddress, function () {
 
-var ipaddr  = process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1";
-var port      = process.env.OPENSHIFT_NODEJS_PORT || 3000
+  var host = ipaddress
+  var port = port
+
+  console.log('Example app listening ')
+
+})
 
 
-/*var io = require('socket.io').listen(16000,ipaddr);
-
-io.sockets.on('connection', function (socket) {
-  console.log('io connection');
-  socket.emit('news', { hello: 'world' });
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
+wss = new WebSocketServer({
+    server: server,
+    autoAcceptConnections: false
 });
-console.log('io listening on port 16000');
-*/  
-var server = http.createServer();
-//var wss = new WebSocketServer({server: server, path: '/connect'});
 
-var  wss = new WebSocketServer({server:server})
-console.log(wss);
+function sws (id) {
+    this.ws = id
+}
+sws.prototype = {
+    ws: function() {
+        return this.ws
+    }
+}
+var clients = [];
+
+function sendall(data) {
+  for (var i in clients)
+try{
+//console.log(data)
+    clients[i].ws.send(data);
+}
+catch(ex)
+{
+	clients.splice(i);
+}
+}
+var a=0;
+var xx=0;
+
+
 wss.on('connection', function(ws) {
-    console.log('/connection connected');
-    ws.on('message', function(data, flags) {
-        if (flags.binary) { return; }
-        console.log('>>> ' + data);
-        if (data == 'test') { console.log('test'); ws.send('got test'); }
-        if (data == 'hello') { console.log('hello'); ws.send('WAZZZUP!'); }
-    });
-    ws.on('close', function() {
+a++;
+  ws.send('Welcome!');
+
+clients.push(new sws(ws));
+  console.log("New connection");
+  ws.on('message', function(message) {
+    //ws.send(message);
+	//console.log(message)
+	sendall(message);
+  });
+
+ws.on('close', function() {
+	for(var i=0;i<clients.length;i++)
+    	{
+		if(clients[i].ws==ws)
+		clients.splice(i);		
+    	}
+	xx=clients.length;
       console.log('Connection closed!');
-    });
-    ws.on('error', function(e) {
-      console.log(e);
+	a--;
     });
 });
 
-wss.on('connect', function(ws) {
-    console.log('/connect connected');
-    ws.on('message', function(data, flags) {
-        if (flags.binary) { return; }
-        console.log('>>> ' + data);
-        if (data == 'test') { console.log('test'); ws.send('got test'); }
-        if (data == 'hello') { console.log('hello'); ws.send('WAZZZUP!'); }
-    });
-    ws.on('close', function() {
-      console.log('Connection closed!');
-    });
-    ws.on('error', function(e) {
-      console.log(e);
-    });
-});
-
-console.log('Listening at IP ' + ipaddr +' on port '+port);
-server.listen(port,ipaddr);
+console.log("Listening to " + ipaddress + ":" + port + "...");
